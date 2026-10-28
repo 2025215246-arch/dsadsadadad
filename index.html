@@ -1,0 +1,135 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <title>2D Image to 3D AR</title>
+
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.7/aframe/build/aframe-ar.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    #panel {
+      position: fixed;
+      z-index: 10;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border-radius: 10px;
+    }
+
+    #imageInput {
+      max-width: 100%;
+      margin-top: 8px;
+    }
+
+    #status {
+      font-size: 13px;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="panel">
+    <strong>2D Image to 3D AR</strong>
+    <br>
+    Select a JPG or PNG image:
+    <br>
+    <input id="imageInput" type="file"
+           accept="image/*">
+    <div id="status">
+      Upload an image, then point your camera at the Hiro marker.
+    </div>
+  </div>
+
+  <a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    renderer="colorManagement: true; antialias: true"
+    arjs="sourceType: webcam; debugUIEnabled: false;">
+
+    <a-marker preset="hiro">
+      <a-entity id="imageModel"
+                position="0 0.02 0"
+                scale="0.8 0.8 0.8">
+      </a-entity>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    const input = document.getElementById("imageInput");
+    const model = document.getElementById("imageModel");
+    const status = document.getElementById("status");
+
+    let currentURL = null;
+
+    input.addEventListener("change", function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (currentURL) {
+        URL.revokeObjectURL(currentURL);
+      }
+
+      currentURL = URL.createObjectURL(file);
+
+      const image = new Image();
+
+      image.onload = function() {
+        model.innerHTML = "";
+
+        // Fit the image inside a 1 x 1 area.
+        const ratio = image.width / image.height;
+        const width = ratio >= 1 ? 1 : ratio;
+        const height = ratio >= 1 ? 1 / ratio : 1;
+
+        // Flat image with its original colours.
+        const plane = document.createElement("a-plane");
+        plane.setAttribute("width", width);
+        plane.setAttribute("height", height);
+        plane.setAttribute("position", "0 0.04 0");
+        plane.setAttribute("material",
+          "shader: flat; side: double; transparent: true;");
+
+        plane.setAttribute("src", currentURL);
+        model.appendChild(plane);
+
+        // Add a shallow 3D backing behind the image.
+        const backing = document.createElement("a-box");
+        backing.setAttribute("width", width);
+        backing.setAttribute("height", height);
+        backing.setAttribute("depth", "0.06");
+        backing.setAttribute("position", "0 0 0");
+        backing.setAttribute("color", "#30343b");
+        backing.setAttribute("material", "roughness: 0.8");
+        model.appendChild(backing);
+
+        status.textContent =
+          "Image loaded. Point your camera at the Hiro marker.";
+      };
+
+      image.onerror = function() {
+        status.textContent = "Could not load this image.";
+      };
+
+      image.src = currentURL;
+    });
+  </script>
+</body>
+</html>
+```
